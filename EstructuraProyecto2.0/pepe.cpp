@@ -25,6 +25,9 @@ int nousuariosregistrados;
 int usuarionoencontrado;
 int contrasenaincorrecta;
 int usuariorepetido;
+char copiarfoto[500];
+int azar = 0;
+int clavevacunarepetido;
 //Variables end
 
 //Struct inicio
@@ -89,6 +92,7 @@ void escribirPersonas();	void leerPersonas();
 void escribirVacunas();	void leerVacunas();
 void BuscarUsuario(char usuario[50]);	void BuscarContrasena(char usuario[50]); 
 void BuscarUsuarioRepetido(char usuario[50]);
+void BuscarClaveVacunaRepetida(char usuario[15]);
 //Funciones final
 
 //Funciones WinAPi inicio
@@ -96,7 +100,7 @@ BOOL CALLBACK LOGIN(HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK REGISTRARSE(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK MyEditCallBckProcedure(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 BOOL CALLBACK REGISTROPERSONAS(HWND, UINT, WPARAM, LPARAM);
-
+BOOL CALLBACK REGISTROVACUNAS(HWND, UINT, WPARAM, LPARAM);
 //Funciones WinAPi final
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, PSTR cmdLine, int cShow) {
@@ -119,6 +123,28 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, PSTR cmdLine, int cShow) {
 	}
 	return 0;
 }
+
+void menu(WPARAM wParam, HWND hwnd) {
+	switch (LOWORD(wParam)) {
+	case ID_REGISTRO_PERSONAS: {
+		EndDialog(hwnd, 0);
+		DialogBox(instGlobal, MAKEINTRESOURCE(IDD_REGISTROPERSONAS), hwnd, REGISTROPERSONAS);
+	}break;
+	case ID_REGISTRO_VACUNAS: {
+		EndDialog(hwnd, 0);
+		DialogBox(instGlobal, MAKEINTRESOURCE(IDD_REGISTROVACUNAS), hwnd, REGISTROVACUNAS);
+	}break;
+	case ID_SALIR_SALIR:
+	{
+		escribirUsuarios();
+		escribirPersonas();
+		escribirVacunas();
+
+		DestroyWindow(hwnd);
+	}break;
+	}
+}
+
 
 BOOL CALLBACK LOGIN(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg)
@@ -261,7 +287,7 @@ BOOL CALLBACK REGISTROPERSONAS(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 			SendDlgItemMessage(hwnd, IDC_REGISTROPERSONAS_DATEPICK, DTM_GETSYSTEMTIME, 0, (LPARAM)&fechaCita);
 			sprintf_s(nodouse->fechaCita.dia, "%d", fechaCita.wDay);
 			sprintf_s(nodouse->fechaCita.mes, "%d", fechaCita.wMonth);
-			sprintf_s(nodouse->fechaCita.anio, "%d", fechaCita.wYear);
+			sprintf_s(nodouse->fechaCita.año, "%d", fechaCita.wYear);
 
 			GetDlgItemText(hwnd, IDC_REGISTROPERSONAS_PATERNO, nodouse->paterno, 15);
 			GetDlgItemText(hwnd, IDC_REGISTROPERSONAS_MATERNO, nodouse->materno, 15);
@@ -288,16 +314,9 @@ BOOL CALLBACK REGISTROPERSONAS(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 				aux = aux->siguiente;
 			}
 			nodouse->carnetid = azar;
-			BuscarCurpRepetido(nodouse->curp);
-			BuscarRfcRepedito(nodouse->rfc);
-			if (curprepetido == 0 && rfcrepetido == 0) {
 				AgregarPersona(nodouse);
 				MessageBox(hwnd, "Persona registrada.", "AVISO", MB_OK | MB_ICONINFORMATION);
-			}
-			else {
-				MessageBox(hwnd, "Curp o Rfc repetido.", "AVISO", MB_OK | MB_ICONERROR);
-			}
-			cuantashay++;
+		cuantashay++;
 		}break;
 		case IDC_REGISTROPERSONAS_CARGARFOTOBTN: {
 			OPENFILENAME ofn;
@@ -332,6 +351,44 @@ BOOL CALLBACK REGISTROPERSONAS(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	return FALSE;
 }
 
+BOOL CALLBACK REGISTROVACUNAS(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	RegistroVacunas* nodouse = new RegistroVacunas;
+	switch (msg) {
+	case WM_CLOSE: {
+		escribirUsuarios();
+		escribirPersonas();
+		escribirVacunas();
+		
+		DestroyWindow(hwnd);
+	}break;
+
+	case WM_DESTROY: {
+		PostQuitMessage(117);
+	}break;
+	case WM_COMMAND: {
+		menu(wParam, hwnd);
+		switch (LOWORD(wParam)) {
+		case BTN_REGISTROVACUNAS_REGISTRAR: {
+			nodouse->nodosis = GetDlgItemInt(hwnd, IDC_REGISTRARVACUNA_NODOSIS, NULL, FALSE);
+			nodouse->precio = GetDlgItemInt(hwnd, IDC_REGISTRARVACUNA_PRECIO, NULL, FALSE);
+			GetDlgItemText(hwnd, IDC_REGISTRARVACUNA_TIPO, nodouse->tipo, 15);
+			GetDlgItemText(hwnd, IDC_REGISTRARVACUNA_MARCA, nodouse->marca, 15);
+			GetDlgItemText(hwnd, IDC_REGISTRARVACUNA_CLAVE, nodouse->clavevacuna, 15);
+			GetDlgItemText(hwnd, IDC_REGISTRARVACUNA_DESCRIPCION, nodouse->descripcion, 30);
+			BuscarClaveVacunaRepetida(nodouse->clavevacuna);
+			if (nodouse->precio > 0 && clavevacunarepetido == 0) {
+				AgregarVacuna(nodouse);
+				MessageBox(hwnd, "Vacuna registrada.", "AVISO", MB_OK | MB_ICONINFORMATION);
+			}
+			else {
+				MessageBox(hwnd, "Precio debe ser mayor a 0 y la clave debe ser diferente.", "AVISO", MB_OK | MB_ICONERROR);
+			}
+		}break;
+		}
+	}
+	}
+	return FALSE;
+}
 
 void AgregarPersona(RegistroPersonas* nuevo)
 {
@@ -693,6 +750,24 @@ void BuscarUsuarioRepetido(char usuario[50]) {
 		usuariorepetido = 1;
 	}
 }
+
+void BuscarClaveVacunaRepetida(char usuario[15]) {
+	clavevacunarepetido = 0;
+	auxxx = inicioxx;
+	if (inicioxx == nullptr) {
+		clavevacunarepetido = 0;
+	}
+	while (auxxx != nullptr && strcmp(auxxx->clavevacuna, usuario) != 0) {
+		auxxx = auxxx->siguiente;
+	}
+	if (auxxx == nullptr) {
+		clavevacunarepetido = 0;
+	}
+	else {
+		clavevacunarepetido = 1;
+	}
+}
+
 
 
 
