@@ -1,0 +1,2 @@
+﻿pepe.obj : error LNK2019: unresolved external symbol "int __stdcall REGISTROPERSONAS(struct HWND__ *,unsigned int,unsigned int,long)" (?REGISTROPERSONAS@@YGHPAUHWND__@@IIJ@Z) referenced in function "int __stdcall LOGIN(struct HWND__ *,unsigned int,unsigned int,long)" (?LOGIN@@YGHPAUHWND__@@IIJ@Z)
+D:\OneDrive\OneDrive - Universidad Autonoma de Nuevo León\School stuff\Facultad\5 semestre\Estructura de datos\EstrucutraProyecto2.0\EstructuraProyecto2.0\Debug\EstructuraProyecto2.0.exe : fatal error LNK1120: 1 unresolved externals
